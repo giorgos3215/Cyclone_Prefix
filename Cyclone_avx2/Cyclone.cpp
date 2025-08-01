@@ -825,6 +825,3 @@ int main(int argc, char* argv[])
     }
     return 0;
 }
-
-
-[end of Cyclone_avx2/Cyclone.cpp]
