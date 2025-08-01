@@ -186,7 +186,7 @@ void Int::DivStep62(Int* u,Int* v,int64_t* eta,int* pos,int64_t* uu,int64_t* uv,
 
 #endif
 
-#if 1
+#if 0
 
   #define SWAP(tmp,x,y) tmp = x; x = y; y = tmp;
 
@@ -275,7 +275,7 @@ void Int::DivStep62(Int* u,Int* v,int64_t* eta,int* pos,int64_t* uu,int64_t* uv,
 
 #endif
 
-#if 0
+#if 1
 
   #define SWAP_NEG(tmp,x,y) tmp = x; x = y; y = -tmp;
 
