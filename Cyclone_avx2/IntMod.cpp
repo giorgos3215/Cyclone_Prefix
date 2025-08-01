@@ -793,11 +793,9 @@ void Int::SetupField(Int *n, Int *R, Int *R2, Int *R3, Int *R4) {
 }
 
 inline uint64_t AddWithCarry(uint64_t a, uint64_t b, uint64_t* carry) {
-    __asm__("addq %2, %0; adcq $0, %1" 
-            : "+r"(a), "+r"(*carry) 
-            : "r"(b) 
-            : "cc");
-    return a;
+    __uint128_t res = (__uint128_t)a + b + *carry;
+    *carry = (uint64_t)(res >> 64);
+    return (uint64_t)res;
 }
 
 // ------------------------------------------------
