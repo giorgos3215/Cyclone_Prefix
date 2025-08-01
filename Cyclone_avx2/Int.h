@@ -249,9 +249,20 @@ static uint64_t inline my_rdtsc() {
 #define __shiftright128(a,b,n) ((a)>>(n))|((b)<<(64-(n)))
 #define __shiftleft128(a,b,n) ((b)<<(n))|((a)>>(64-(n)))
 
+static unsigned char inline generic_addcarry_u64(unsigned char c_in, uint64_t a, uint64_t b, uint64_t *out) {
+    __uint128_t res = (__uint128_t)a + b + c_in;
+    *out = (uint64_t)res;
+    return (unsigned char)(res >> 64);
+}
 
-#define _subborrow_u64(a,b,c,d) __builtin_ia32_sbb_u64(a,b,c,(long long unsigned int*)d);
-#define _addcarry_u64(a,b,c,d) __builtin_ia32_addcarryx_u64(a,b,c,(long long unsigned int*)d);
+static unsigned char inline generic_subborrow_u64(unsigned char b_in, uint64_t a, uint64_t b, uint64_t *out) {
+    __uint128_t res = (__uint128_t)a - b - b_in;
+    *out = (uint64_t)res;
+    return (unsigned char)((res >> 64) & 1);
+}
+
+#define _subborrow_u64(a,b,c,d) generic_subborrow_u64(a,b,c,(long long unsigned int*)d)
+#define _addcarry_u64(a,b,c,d) generic_addcarry_u64(a,b,c,(long long unsigned int*)d)
 #define _byteswap_uint64 __builtin_bswap64
 #define LZC(x) __builtin_clzll(x)
 #define TZC(x) __builtin_ctzll(x)
