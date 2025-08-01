@@ -150,18 +150,11 @@ void Int::DivStep62(Int* u,Int* v,int64_t* eta,int* pos,int64_t* uu,int64_t* uv,
 
   bitCount = 62;
   int64_t nb0;
-  __m128i _u;
-  __m128i _v;
-  _u.m128i_u64[0] = 1;
-  _u.m128i_u64[1] = 0;
-  _v.m128i_u64[0] = 0;
-  _v.m128i_u64[1] = 1;
 
   while(true) {
 
     int zeros = TZC(v0 | (UINT64_MAX << bitCount));
     v0 >>= zeros;
-    _u = _mm_slli_epi64(_u,(int)zeros);
     bitCount -= zeros;
 
     if(bitCount <= 0)
@@ -169,20 +162,12 @@ void Int::DivStep62(Int* u,Int* v,int64_t* eta,int* pos,int64_t* uu,int64_t* uv,
 
     nb0 = (v0 + u0) & 0x3;
     if(nb0 == 0) {
-      _v = _mm_add_epi64(_v,_u);
-      _u = _mm_sub_epi64(_u,_v);
       SWAP_ADD(v0,u0);
     } else {
-      _v = _mm_sub_epi64(_v,_u);
-      _u = _mm_add_epi64(_u,_v);
       SWAP_SUB(v0,u0);
     }
 
   }
-  *uu = _u.m128i_u64[0];
-  *uv = _u.m128i_u64[1];
-  *vu = _v.m128i_u64[0];
-  *vv = _v.m128i_u64[1];
 
 #endif
 
@@ -220,29 +205,12 @@ void Int::DivStep62(Int* u,Int* v,int64_t* eta,int* pos,int64_t* uu,int64_t* uv,
 
   bitCount = 62;
 
-  __m128i _u;
-  __m128i _v;
-  __m128i _t;
-
-#ifdef WIN64
-  _u.m128i_u64[0] = 1;
-  _u.m128i_u64[1] = 0;
-  _v.m128i_u64[0] = 0;
-  _v.m128i_u64[1] = 1;
-#else
-  ((int64_t *)&_u)[0] = 1;
-  ((int64_t *)&_u)[1] = 0;
-  ((int64_t *)&_v)[0] = 0;
-  ((int64_t *)&_v)[1] = 1;
-#endif
-
   while(true) {
 
     // Use a sentinel bit to count zeros only up to bitCount
     uint64_t zeros = TZC(v0 | 1ULL << bitCount);
     vh >>= zeros;
     v0 >>= zeros;
-    _u = _mm_slli_epi64(_u,(int)zeros);
     bitCount -= (int)zeros;
 
     if(bitCount <= 0) {
@@ -252,26 +220,12 @@ void Int::DivStep62(Int* u,Int* v,int64_t* eta,int* pos,int64_t* uu,int64_t* uv,
     if( vh < uh ) {
       SWAP(w,uh,vh);
       SWAP(x,u0,v0);
-      SWAP(_t,_u,_v);
     }
 
     vh -= uh;
     v0 -= u0;
-    _v = _mm_sub_epi64(_v,_u);
 
   }
-
-#ifdef WIN64
-  *uu = _u.m128i_u64[0];
-  *uv = _u.m128i_u64[1];
-  *vu = _v.m128i_u64[0];
-  *vv = _v.m128i_u64[1];
-#else
-  *uu = ((int64_t *)&_u)[0];
-  *uv = ((int64_t *)&_u)[1];
-  *vu = ((int64_t *)&_v)[0];
-  *vv = ((int64_t *)&_v)[1];
-#endif
 
 #endif
 
@@ -1291,4 +1245,3 @@ void Int::ModMulK1order(Int *a) {
     Set(&t);
 
 }
-

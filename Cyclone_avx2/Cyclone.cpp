@@ -28,9 +28,9 @@
 #include "tee_stream.h"
 
 //------------------------------------------------------------------------------
-// Batch size: ±256 public keys (512), hashed in groups of 8 (AVX2).
+// Batch size: ±256 public keys (512), hashed in groups of 4 (NEON).
 static constexpr int POINTS_BATCH_SIZE = 256;
-static constexpr int HASH_BATCH_SIZE   = 8;
+static constexpr int HASH_BATCH_SIZE   = 4;
 
 // Status output and progress saving frequency
 static constexpr double statusIntervalSec = 5.0;
@@ -231,7 +231,7 @@ inline void prepareRipemdBlock(const uint8_t* dataSrc, uint8_t* outBlock) {
     outBlock[63] = (uint8_t)( bitLen        & 0xFF);
 }
 
-// Computing hash160 using avx2 (8 hashes per try)
+// Computing hash160 using NEON (4 hashes per try)
 static void computeHash160BatchBinSingle(int numKeys,
                                          uint8_t pubKeys[][33],
                                          uint8_t hashResults[][20])
@@ -257,11 +257,9 @@ static void computeHash160BatchBinSingle(int numKeys,
             inPtr[i]  = shaInputs[i].data();
             outPtr[i] = shaOutputs[i].data();
         }
-        // SHA256 (avx2)
-        sha256avx2_8B(inPtr[0], inPtr[1], inPtr[2], inPtr[3],
-                      inPtr[4], inPtr[5], inPtr[6], inPtr[7],
-                      outPtr[0], outPtr[1], outPtr[2], outPtr[3],
-                      outPtr[4], outPtr[5], outPtr[6], outPtr[7]);
+        // SHA256 (NEON)
+        sha256neon_4B(inPtr[0], inPtr[1], inPtr[2], inPtr[3],
+                      outPtr[0], outPtr[1], outPtr[2], outPtr[3]);
 
         // Preparing Ripemd160
         for (size_t i = 0; i < batchCount; i++) {
@@ -274,18 +272,13 @@ static void computeHash160BatchBinSingle(int numKeys,
             inPtr[i]  = ripemdInputs[i].data();
             outPtr[i] = ripemdOutputs[i].data();
         }
-        // Ripemd160 (avx2)
-        ripemd160avx2::ripemd160avx2_32(
+        // Ripemd160 (NEON)
+        ripemd160neon::ripemd160neon_32(
             (unsigned char*)inPtr[0],
             (unsigned char*)inPtr[1],
             (unsigned char*)inPtr[2],
             (unsigned char*)inPtr[3],
-            (unsigned char*)inPtr[4],
-            (unsigned char*)inPtr[5],
-            (unsigned char*)inPtr[6],
-            (unsigned char*)inPtr[7],
-            outPtr[0], outPtr[1], outPtr[2], outPtr[3],
-            outPtr[4], outPtr[5], outPtr[6], outPtr[7]
+            outPtr[0], outPtr[1], outPtr[2], outPtr[3]
         );
         for (size_t i = 0; i < batchCount; i++) {
             const size_t idx = batch * HASH_BATCH_SIZE + i;
@@ -833,3 +826,5 @@ int main(int argc, char* argv[])
     return 0;
 }
 
+
+[end of Cyclone_avx2/Cyclone.cpp]
