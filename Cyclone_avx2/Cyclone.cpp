@@ -19,8 +19,8 @@
 #include <mutex>
 // Adding program modules
 #include "p2pkh_decoder.h"
-#include "sha256_avx2.h"
-#include "ripemd160_avx2.h"
+#include "sha256_neon.h"
+#include "ripemd160_neon.h"
 #include "SECP256K1.h"
 #include "Point.h"
 #include "Int.h"

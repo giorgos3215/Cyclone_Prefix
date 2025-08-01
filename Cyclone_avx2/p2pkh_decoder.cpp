@@ -1,6 +1,6 @@
 #include "p2pkh_decoder.h"
-#include "sha256_avx2.h"
-#include "ripemd160_avx2.h"
+#include "sha256_neon.h"
+#include "ripemd160_neon.h"
 #include <cstdint>
 #include <vector>
 #include <string>
