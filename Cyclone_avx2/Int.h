@@ -216,27 +216,22 @@ private:
 
 // Missing intrinsics
 static uint64_t inline _umul128(uint64_t a, uint64_t b, uint64_t *h) {
-  uint64_t rhi;
-  uint64_t rlo;
-  __asm__( "mulq  %[b];" :"=d"(rhi),"=a"(rlo) :"1"(a),[b]"rm"(b));
-  *h = rhi;
-  return rlo;
+  __uint128_t res = (__uint128_t)a * b;
+  *h = (uint64_t)(res >> 64);
+  return (uint64_t)res;
 }
 
 static int64_t inline _mul128(int64_t a, int64_t b, int64_t *h) {
-  uint64_t rhi;
-  uint64_t rlo;
-  __asm__( "imulq  %[b];" :"=d"(rhi),"=a"(rlo) :"1"(a),[b]"rm"(b));
-  *h = rhi;
-  return rlo;  
+  __int128_t res = (__int128_t)a * b;
+  *h = (int64_t)(res >> 64);
+  return (int64_t)res;
 }
 
 static uint64_t inline _udiv128(uint64_t hi, uint64_t lo, uint64_t d,uint64_t *r) {
-  uint64_t q;
-  uint64_t _r;
-  __asm__( "divq  %[d];" :"=d"(_r),"=a"(q) :"d"(hi),"a"(lo),[d]"rm"(d));
-  *r = _r;
-  return q;  
+  __uint128_t n = ((__uint128_t)hi << 64) | lo;
+  if (d == 0) return 0; // Or handle error appropriately
+  *r = n % d;
+  return n / d;
 }
 
 #define __shiftright128(a,b,n) ((a)>>(n))|((b)<<(64-(n)))
