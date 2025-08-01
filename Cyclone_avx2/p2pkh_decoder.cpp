@@ -126,14 +126,9 @@ std::vector<uint8_t> compute_sha256(const std::vector<uint8_t>& data) {
     }
     memcpy(padded.data() + 56, length_bytes, 8);
 
-    unsigned char hash0[32], hash1_output[32], hash2_output[32], hash3_output[32],
-               hash4_output[32], hash5_output[32], hash6_output[32], hash7_output[32];
+    unsigned char hash0[32], hash1_output[32], hash2_output[32], hash3_output[32];
 
-    sha256avx2_8B(
-        padded.data(),
-        padded.data(),
-        padded.data(),
-        padded.data(),
+    sha256neon_4B(
         padded.data(),
         padded.data(),
         padded.data(),
@@ -141,11 +136,7 @@ std::vector<uint8_t> compute_sha256(const std::vector<uint8_t>& data) {
         hash0,
         hash1_output,
         hash2_output,
-        hash3_output,
-        hash4_output,
-        hash5_output,
-        hash6_output,
-        hash7_output
+        hash3_output
     );
 
     return std::vector<uint8_t>(hash0, hash0 + 32);
@@ -162,19 +153,11 @@ std::vector<uint8_t> compute_hash160(const std::vector<uint8_t>& data) {
     memcpy(ripemd_padded.data() + 56, bit_length_ripemd, 8);
 
     unsigned char ripemd_output[20];
-    ripemd160avx2::ripemd160avx2_32(
+    ripemd160neon::ripemd160neon_32(
         ripemd_padded.data(),
         ripemd_padded.data(),
         ripemd_padded.data(),
         ripemd_padded.data(),
-        ripemd_padded.data(),
-        ripemd_padded.data(),
-        ripemd_padded.data(),
-        ripemd_padded.data(),
-        ripemd_output,
-        ripemd_output,
-        ripemd_output,
-        ripemd_output,
         ripemd_output,
         ripemd_output,
         ripemd_output,
@@ -235,4 +218,3 @@ std::string compute_wif(const std::string& private_key_hex, bool compressed) {
 }
 
 } // namespace P2PKHDecoder
-
