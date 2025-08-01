@@ -845,17 +845,7 @@ void Int::MontgomeryMult(Int *a, Int *b) {
 
 void Int::ModMulK1(Int *a, Int *b) {
 
-#ifndef WIN64
-#if (__GNUC__ > 7) || (__GNUC__ == 7 && (__GNUC_MINOR__ > 2))
   unsigned char c;
-#else
-  #warning "GCC lass than 7.3 detected, upgrade gcc to get best perfromance"
-  volatile unsigned char c;
-#endif
-#else
-  unsigned char c;
-#endif
-
 
   uint64_t ah, al;
   uint64_t t[NB64BLOCK];
@@ -905,7 +895,7 @@ void Int::ModMulK1(Int *a, Int *b) {
 
   // Reduce from 320 to 256 
   // No overflow possible here t[4]+c<=0x1000003D1ULL
-  al = _umul128(t[4] + c, 0x1000003D1ULL, &ah); 
+  __uint128_t res = (__uint128_t)(t[4] + c) * 0x1000003D1ULL; ah = (uint64_t)(res >> 64); al = (uint64_t)res;
   c = _addcarry_u64(0, r512[0], al, bits64 + 0);
   c = _addcarry_u64(c, r512[1], ah, bits64 + 1);
   c = _addcarry_u64(c, r512[2], 0ULL, bits64 + 2);
@@ -924,16 +914,7 @@ void Int::ModMulK1(Int *a, Int *b) {
 
 void Int::ModMulK1(Int *a) {
 
-#ifndef WIN64
-#if (__GNUC__ > 7) || (__GNUC__ == 7 && (__GNUC_MINOR__ > 2))
   unsigned char c;
-#else
-  #warning "GCC lass than 7.3 detected, upgrade gcc to get best perfromance"
-  volatile unsigned char c;
-#endif
-#else
-  unsigned char c;
-#endif
 
   uint64_t ah, al;
   uint64_t t[NB64BLOCK];
@@ -984,7 +965,7 @@ void Int::ModMulK1(Int *a) {
 
   // Reduce from 320 to 256 
   // No overflow possible here t[4]+c<=0x1000003D1ULL
-  al = _umul128(t[4] + c, 0x1000003D1ULL, &ah);
+  __uint128_t res = (__uint128_t)(t[4] + c) * 0x1000003D1ULL; ah = (uint64_t)(res >> 64); al = (uint64_t)res;
   c = _addcarry_u64(0, r512[0], al, bits64 + 0);
   c = _addcarry_u64(c, r512[1], ah, bits64 + 1);
   c = _addcarry_u64(c, r512[2], 0, bits64 + 2);
@@ -1002,16 +983,7 @@ void Int::ModMulK1(Int *a) {
 
 void Int::ModSquareK1(Int *a) {
 
-#ifndef WIN64
-#if (__GNUC__ > 7) || (__GNUC__ == 7 && (__GNUC_MINOR__ > 2))
   unsigned char c;
-#else
-  #warning "GCC lass than 7.3 detected, upgrade gcc to get best perfromance"
-  volatile unsigned char c;
-#endif
-#else
-  unsigned char c;
-#endif
 
   uint64_t u10, u11;
   uint64_t t1;
@@ -1035,10 +1007,10 @@ void Int::ModSquareK1(Int *a) {
 
 
   //k=0
-  r512[0] = _umul128(a->bits64[0], a->bits64[0], &t[1]);
+  __uint128_t res = (__uint128_t)a->bits64[0] * a->bits64[0]; t[1] = (uint64_t)(res >> 64); r512[0] = (uint64_t)res;
 
   //k=1
-  t[3] = _umul128(a->bits64[0], a->bits64[1], &t[4]);
+  res = (__uint128_t)a->bits64[0] * a->bits64[1]; t[4] = (uint64_t)(res >> 64); t[3] = (uint64_t)res;
   c = _addcarry_u64(0, t[3], t[3], &t[3]);
   c = _addcarry_u64(c, t[4], t[4], &t[4]);
   c = _addcarry_u64(c,  0,  0, &t1);
@@ -1048,12 +1020,12 @@ void Int::ModSquareK1(Int *a) {
   r512[1] = t[3];
 
   //k=2
-  t[0] = _umul128(a->bits64[0], a->bits64[2], &t[1]);
+  res = (__uint128_t)a->bits64[0] * a->bits64[2]; t[1] = (uint64_t)(res >> 64); t[0] = (uint64_t)res;
   c = _addcarry_u64(0, t[0], t[0], &t[0]);
   c = _addcarry_u64(c, t[1], t[1], &t[1]);
   c = _addcarry_u64(c,  0,  0, &t2);
 
-  u10 = _umul128(a->bits64[1], a->bits64[1], &u11);
+  res = (__uint128_t)a->bits64[1] * a->bits64[1]; u11 = (uint64_t)(res >> 64); u10 = (uint64_t)res;
   c = _addcarry_u64(0, t[0] , u10, &t[0]);
   c = _addcarry_u64(c, t[1] , u11, &t[1]);
   c = _addcarry_u64(c, t2 ,   0, &t2);
@@ -1063,8 +1035,8 @@ void Int::ModSquareK1(Int *a) {
   r512[2] = t[0];
 
   //k=3
-  t[3] = _umul128(a->bits64[0], a->bits64[3], &t[4]);
-  u10 = _umul128(a->bits64[1], a->bits64[2], &u11);
+  res = (__uint128_t)a->bits64[0] * a->bits64[3]; t[4] = (uint64_t)(res >> 64); t[3] = (uint64_t)res;
+  res = (__uint128_t)a->bits64[1] * a->bits64[2]; u11 = (uint64_t)(res >> 64); u10 = (uint64_t)res;
 
   c = _addcarry_u64(0, t[3], u10, &t[3]);
   c = _addcarry_u64(c, t[4], u11, &t[4]);
@@ -1079,12 +1051,12 @@ void Int::ModSquareK1(Int *a) {
   r512[3] = t[3];
 
   //k=4
-  t[0] = _umul128(a->bits64[1], a->bits64[3], &t[1]);
+  res = (__uint128_t)a->bits64[1] * a->bits64[3]; t[1] = (uint64_t)(res >> 64); t[0] = (uint64_t)res;
   c = _addcarry_u64(0, t[0], t[0], &t[0]);
   c = _addcarry_u64(c, t[1], t[1], &t[1]);
   c = _addcarry_u64(c, 0, 0, &t2);
 
-  u10 = _umul128(a->bits64[2], a->bits64[2], &u11);
+  res = (__uint128_t)a->bits64[2] * a->bits64[2]; u11 = (uint64_t)(res >> 64); u10 = (uint64_t)res;
   c = _addcarry_u64(0, t[0], u10, &t[0]);
   c = _addcarry_u64(c, t[1], u11, &t[1]);
   c = _addcarry_u64(c, t2, 0, &t2);
@@ -1094,7 +1066,7 @@ void Int::ModSquareK1(Int *a) {
   r512[4] = t[0];
 
   //k=5
-  t[3] = _umul128(a->bits64[2], a->bits64[3], &t[4]);
+  res = (__uint128_t)a->bits64[2] * a->bits64[3]; t[4] = (uint64_t)(res >> 64); t[3] = (uint64_t)res;
   c = _addcarry_u64(0, t[3], t[3], &t[3]);
   c = _addcarry_u64(c, t[4], t[4], &t[4]);
   c = _addcarry_u64(c, 0, 0, &t1);
@@ -1104,7 +1076,7 @@ void Int::ModSquareK1(Int *a) {
   r512[5] = t[3];
 
   //k=6
-  t[0] = _umul128(a->bits64[3], a->bits64[3], &t[1]);
+  res = (__uint128_t)a->bits64[3] * a->bits64[3]; t[1] = (uint64_t)(res >> 64); t[0] = (uint64_t)res;
   c = _addcarry_u64(0, t[0], t[4], &t[0]);
   c = _addcarry_u64(c, t[1], t1, &t[1]);
   r512[6] = t[0];
@@ -1122,7 +1094,7 @@ void Int::ModSquareK1(Int *a) {
 
   // Reduce from 320 to 256 
   // No overflow possible here t[4]+c<=0x1000003D1ULL
-  u10 = _umul128(t[4] + c, 0x1000003D1ULL, &u11);
+  res = (__uint128_t)(t[4] + c) * 0x1000003D1ULL; u11 = (uint64_t)(res >> 64); u10 = (uint64_t)res;
   c = _addcarry_u64(0, r512[0], u10, bits64 + 0);
   c = _addcarry_u64(c, r512[1], u11, bits64 + 1);
   c = _addcarry_u64(c, r512[2], 0, bits64 + 2);
