@@ -16,7 +16,6 @@
 */
 
 #include "Int.h"
-#include <emmintrin.h>
 #include <string.h>
 
 #define MAX(x,y) (((x)>(y))?(x):(y))
