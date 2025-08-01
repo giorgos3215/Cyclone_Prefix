@@ -214,7 +214,6 @@ private:
 
 #ifndef WIN64
 
-// Missing intrinsics
 #define __shiftright128(a,b,n) ((a)>>(n))|((b)<<(64-(n)))
 #define __shiftleft128(a,b,n) ((b)<<(n))|((a)>>(64-(n)))
 
@@ -365,4 +364,3 @@ static inline int isStrictGreater128(uint64_t h1,uint64_t l1,uint64_t h2,uint64_
 }
 
 #endif // BIGINTH
-
