@@ -19,8 +19,8 @@
 #include <mutex>
 // Adding program modules
 #include "p2pkh_decoder.h"
-#include "sha256_neon.h"
-#include "ripemd160_neon.h"
+#include "sha256_avx2.h"
+#include "ripemd160_avx2.h"
 #include "SECP256K1.h"
 #include "Point.h"
 #include "Int.h"
@@ -28,9 +28,9 @@
 #include "tee_stream.h"
 
 //------------------------------------------------------------------------------
-// Batch size: ±256 public keys (512), hashed in groups of 4 (NEON).
+// Batch size: ±256 public keys (512), hashed in groups of 8 (AVX2).
 static constexpr int POINTS_BATCH_SIZE = 256;
-static constexpr int HASH_BATCH_SIZE   = 4;
+static constexpr int HASH_BATCH_SIZE   = 8;
 
 // Status output and progress saving frequency
 static constexpr double statusIntervalSec = 5.0;
@@ -257,9 +257,11 @@ static void computeHash160BatchBinSingle(int numKeys,
             inPtr[i]  = shaInputs[i].data();
             outPtr[i] = shaOutputs[i].data();
         }
-        // SHA256 (NEON)
-        sha256neon_4B(inPtr[0], inPtr[1], inPtr[2], inPtr[3],
-                      outPtr[0], outPtr[1], outPtr[2], outPtr[3]);
+        // SHA256 (avx2)
+        sha256avx2_8B(inPtr[0], inPtr[1], inPtr[2], inPtr[3],
+                      inPtr[4], inPtr[5], inPtr[6], inPtr[7],
+                      outPtr[0], outPtr[1], outPtr[2], outPtr[3],
+                      outPtr[4], outPtr[5], outPtr[6], outPtr[7]);
 
         // Preparing Ripemd160
         for (size_t i = 0; i < batchCount; i++) {
@@ -272,13 +274,18 @@ static void computeHash160BatchBinSingle(int numKeys,
             inPtr[i]  = ripemdInputs[i].data();
             outPtr[i] = ripemdOutputs[i].data();
         }
-        // Ripemd160 (NEON)
-        ripemd160neon::ripemd160neon_32(
+        // Ripemd160 (avx2)
+        ripemd160avx2::ripemd160avx2_32(
             (unsigned char*)inPtr[0],
             (unsigned char*)inPtr[1],
             (unsigned char*)inPtr[2],
             (unsigned char*)inPtr[3],
-            outPtr[0], outPtr[1], outPtr[2], outPtr[3]
+            (unsigned char*)inPtr[4],
+            (unsigned char*)inPtr[5],
+            (unsigned char*)inPtr[6],
+            (unsigned char*)inPtr[7],
+            outPtr[0], outPtr[1], outPtr[2], outPtr[3],
+            outPtr[4], outPtr[5], outPtr[6], outPtr[7]
         );
         for (size_t i = 0; i < batchCount; i++) {
             const size_t idx = batch * HASH_BATCH_SIZE + i;
@@ -604,7 +611,7 @@ int main(int argc, char* argv[])
                 pointIndices[localBatchCount] = i;
                 localBatchCount++;
 
-                // 4 keys are ready - time to use neon
+                // 8 keys are ready - time to use avx2
                 if (localBatchCount == HASH_BATCH_SIZE) {
                     computeHash160BatchBinSingle(localBatchCount, localPubKeys, localHashResults);
                     // Results check
