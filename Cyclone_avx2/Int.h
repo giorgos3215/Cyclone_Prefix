@@ -22,7 +22,6 @@
 #include "Random.h"
 #include <string>
 #include <inttypes.h>
-#include <immintrin.h>
 
 // We need 1 extra block for Knuth div algorithm , Montgomery multiplication and ModInv
 #define BISIZE 256
