@@ -8,16 +8,16 @@
 CXX ?= g++
 
 # Compiler flags (optimized for performance)
-CFLAGS = -include x86intrin.h -std=c++17 -Ofast -funroll-loops -ftree-vectorize -fstrict-aliasing \
+CFLAGS = -std=c++17 -Ofast -funroll-loops -ftree-vectorize -fstrict-aliasing \
          -fno-semantic-interposition -fvect-cost-model=unlimited -fno-trapping-math \
-         -fipa-ra -flto -fassociative-math -fopenmp -mavx2 -mbmi2 -madx
+         -fipa-ra -flto -fassociative-math -fopenmp -march=native
 
 # Linker flags
 LDFLAGS = -fopenmp
 
 # Source files
 SOURCES = Cyclone.cpp SECP256K1.cpp Int.cpp IntGroup.cpp IntMod.cpp Point.cpp \
-          ripemd160_avx2.cpp p2pkh_decoder.cpp sha256_avx2.cpp Timer.cpp Random.cpp
+          ripemd160_neon.cpp p2pkh_decoder.cpp sha256_neon.cpp Timer.cpp Random.cpp
 
 # Object files
 OBJECTS = $(SOURCES:.cpp=.o)

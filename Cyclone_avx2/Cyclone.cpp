@@ -2,7 +2,7 @@
 
 //The software is developed for solving Satoshi's puzzles; any use for illegal purposes is strictly prohibited. The author is not responsible for any actions taken by the user when using this software for unlawful activities.
 // Prefix option added by @B0dre
-#include <immintrin.h>
+#include <arm_neon.h>
 #include <iostream>
 #include <iomanip>
 #include <string>
@@ -19,8 +19,8 @@
 #include <mutex>
 // Adding program modules
 #include "p2pkh_decoder.h"
-#include "sha256_avx2.h"
-#include "ripemd160_avx2.h"
+#include "sha256_neon.h"
+#include "ripemd160_neon.h"
 #include "SECP256K1.h"
 #include "Point.h"
 #include "Int.h"
@@ -28,9 +28,9 @@
 #include "tee_stream.h"
 
 //------------------------------------------------------------------------------
-// Batch size: ±256 public keys (512), hashed in groups of 8 (AVX2).
+// Batch size: ±256 public keys (512), hashed in groups of 4 (NEON).
 static constexpr int POINTS_BATCH_SIZE = 256;
-static constexpr int HASH_BATCH_SIZE   = 8;
+static constexpr int HASH_BATCH_SIZE   = 4;
 
 // Status output and progress saving frequency
 static constexpr double statusIntervalSec = 5.0;
@@ -257,11 +257,9 @@ static void computeHash160BatchBinSingle(int numKeys,
             inPtr[i]  = shaInputs[i].data();
             outPtr[i] = shaOutputs[i].data();
         }
-        // SHA256 (avx2)
-        sha256avx2_8B(inPtr[0], inPtr[1], inPtr[2], inPtr[3],
-                      inPtr[4], inPtr[5], inPtr[6], inPtr[7],
-                      outPtr[0], outPtr[1], outPtr[2], outPtr[3],
-                      outPtr[4], outPtr[5], outPtr[6], outPtr[7]);
+        // SHA256 (NEON)
+        sha256neon_4B(inPtr[0], inPtr[1], inPtr[2], inPtr[3],
+                      outPtr[0], outPtr[1], outPtr[2], outPtr[3]);
 
         // Preparing Ripemd160
         for (size_t i = 0; i < batchCount; i++) {
@@ -274,18 +272,13 @@ static void computeHash160BatchBinSingle(int numKeys,
             inPtr[i]  = ripemdInputs[i].data();
             outPtr[i] = ripemdOutputs[i].data();
         }
-        // Ripemd160 (avx2)
-        ripemd160avx2::ripemd160avx2_32(
+        // Ripemd160 (NEON)
+        ripemd160neon::ripemd160neon_32(
             (unsigned char*)inPtr[0],
             (unsigned char*)inPtr[1],
             (unsigned char*)inPtr[2],
             (unsigned char*)inPtr[3],
-            (unsigned char*)inPtr[4],
-            (unsigned char*)inPtr[5],
-            (unsigned char*)inPtr[6],
-            (unsigned char*)inPtr[7],
-            outPtr[0], outPtr[1], outPtr[2], outPtr[3],
-            outPtr[4], outPtr[5], outPtr[6], outPtr[7]
+            outPtr[0], outPtr[1], outPtr[2], outPtr[3]
         );
         for (size_t i = 0; i < batchCount; i++) {
             const size_t idx = batch * HASH_BATCH_SIZE + i;
@@ -527,8 +520,8 @@ int main(int argc, char* argv[])
         // Local count
         unsigned long long localComparedCount = 0ULL;
 
-        // Download the target (hash160) в __m128i for fast compare
-        __m128i target16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(targetHash160.data()));
+        // Download the target (hash160) в uint8x16_t for fast compare
+        uint8x16_t target16 = vld1q_u8(reinterpret_cast<const uint8_t*>(targetHash160.data()));
 
         // main
         while (true) {
@@ -611,16 +604,26 @@ int main(int argc, char* argv[])
                 pointIndices[localBatchCount] = i;
                 localBatchCount++;
 
-                // 8 keys are ready - time to use avx2
+                // 4 keys are ready - time to use neon
                 if (localBatchCount == HASH_BATCH_SIZE) {
                     computeHash160BatchBinSingle(localBatchCount, localPubKeys, localHashResults);
                     // Results check
                     for (int j = 0; j < HASH_BATCH_SIZE; j++) {
-                        __m128i cand16 = _mm_loadu_si128(reinterpret_cast<const __m128i*>(localHashResults[j]));
-                        __m128i cmp = _mm_cmpeq_epi8(cand16, target16);
+                        uint8x16_t cand16 = vld1q_u8(reinterpret_cast<const uint8_t*>(localHashResults[j]));
+                        uint8x16_t cmp = vceqq_u8(cand16, target16);
 
-                        // Use the g_prefixLength variable for comparison
-                        if ((_mm_movemask_epi8(cmp) & ((1 << g_prefixLength) - 1)) == ((1 << g_prefixLength) - 1)) {
+                        uint8_t cmp_res[16];
+                        vst1q_u8(cmp_res, cmp);
+                        bool prefix_match = true;
+                        int check_len = g_prefixLength > 16 ? 16 : g_prefixLength;
+                        for(int k=0; k < check_len; k++) {
+                            if(cmp_res[k] != 0xff) {
+                                prefix_match = false;
+                                break;
+                            }
+                        }
+
+                        if (prefix_match) {
                             // If the first g_prefixLength bytes match, perform a memcmp to be sure
                             if (!matchFound && std::memcmp(localHashResults[j], targetHash160.data(), g_prefixLength) == 0) {
                                 #pragma omp critical
